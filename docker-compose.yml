@@ -1,0 +1,18 @@
+version: '2'
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+      - "5858:5858"
+    volumes:
+      - ./src:/user/development/image-gallery-app/src
+    links:
+      - mongo
+      - redis
+  redis:
+    image: redis
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"

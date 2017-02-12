@@ -1,0 +1,19 @@
+{
+  "serviceRecheckInterval": 1000,
+  "services": {
+    "redis": {
+      "host": "redis"
+    },
+    "mongo": {
+      "host": "mongo",
+      "port": 27017,
+      "database": "imageGalleryApp",
+      "collections": {
+        "users": "users"
+      }
+    }
+  },
+  "security": {
+    "saltRounds": 10
+  }
+}
