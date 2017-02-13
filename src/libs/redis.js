@@ -31,19 +31,13 @@ const connectToRedis = host => (
                 }).then(JSON.parse)
             )
 
-            const addUserToken = (user, token) => (
-                get(user)
-                    .then(userTokens => {
-                        if (userTokens != null) {
-                            return userTokens.concat(token)
-                        } else {
-                            return [token]
-                        }
-                    })
-                    .then(userTokens => set(user, userTokens))
+            const remove = key => (
+                new Promise((resolve, reject) => {
+                    redisClient.del(key, callback(resolve, reject))
+                })
             )
 
-            resolve({addUserToken})
+            resolve({set, get, remove})
         })
     })
 )

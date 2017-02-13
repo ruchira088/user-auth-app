@@ -1,11 +1,36 @@
 const express = require("express")
 const httpStatusCodes = require("http-status-codes")
 const userLib = require("../libs/user")
-const config = require("../../config.json")
 const constants = require("../constants/messages")
+const config = require("../../config.json")
+const {AUTHENTICATION} = require("../constants/errors")
 
 const PATH = "/user"
-const {collections} = config.services.mongo
+
+const authenticationMiddleware = redis => (request, response, next) => {
+    const token = request.get(config.security.authenticationHeader)
+
+    userLib.getUserFromToken(redis, token)
+        .then(user => {
+            response.locals.user = user
+            next()
+        })
+        .catch(error => {
+            const authError = Object.keys(AUTHENTICATION)
+                .map(key => AUTHENTICATION[key])
+                .find(authenticationError => authenticationError == error)
+
+            const statusCode = (() => {
+                if(authError == undefined) {
+                    return httpStatusCodes.INTERNAL_SERVER_ERROR
+                } else {
+                    return httpStatusCodes.UNAUTHORIZED
+                }
+            })()
+
+            response.status(statusCode).json(error)
+        })
+}
 
 const getUserRouter = ({redisClient, db}) => {
     const userRouter = express.Router()
@@ -54,6 +79,21 @@ const getUserRouter = ({redisClient, db}) => {
             .then(({status, result}) => {
                 response.status(status).json(result)
             })
+    })
+
+    userRouter.use(authenticationMiddleware(redisClient))
+
+    userRouter.post("/logout", (request, response) => {
+        const {token} = response.locals.user
+
+        userLib.logout(redisClient, token)
+            .then(result => {
+                response.status(httpStatusCodes.OK).json({result})
+            })
+            .catch(error => {
+                response.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({error})
+            })
+
     })
 
     return userRouter
