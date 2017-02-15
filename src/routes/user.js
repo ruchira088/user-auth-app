@@ -1,36 +1,11 @@
 const express = require("express")
 const httpStatusCodes = require("http-status-codes")
 const userLib = require("../libs/user")
-const constants = require("../constants/messages")
-const config = require("../../config.json")
-const {AUTHENTICATION} = require("../constants/errors")
+const {RESPONSES} = require("../constants/messages")
+const {UUID_REGEX} = require("../constants/general")
+const {authentication} = require("../middleware/security")
 
 const PATH = "/user"
-
-const authenticationMiddleware = redis => (request, response, next) => {
-    const token = request.get(config.security.authenticationHeader)
-
-    userLib.getUserFromToken(redis, token)
-        .then(user => {
-            response.locals.user = user
-            next()
-        })
-        .catch(error => {
-            const authError = Object.keys(AUTHENTICATION)
-                .map(key => AUTHENTICATION[key])
-                .find(authenticationError => authenticationError == error)
-
-            const statusCode = (() => {
-                if(authError == undefined) {
-                    return httpStatusCodes.INTERNAL_SERVER_ERROR
-                } else {
-                    return httpStatusCodes.UNAUTHORIZED
-                }
-            })()
-
-            response.status(statusCode).json(error)
-        })
-}
 
 const getUserRouter = ({redisClient, db}) => {
     const userRouter = express.Router()
@@ -45,7 +20,7 @@ const getUserRouter = ({redisClient, db}) => {
                             .then(result => ({result, status: httpStatusCodes.CREATED}))
                 } else {
                     return ({
-                        result: `${constants.RESPONSES.USERNAME_EXISTS}: ${username}`,
+                        result: `${RESPONSES.USERNAME_EXISTS}: ${username}`,
                         status: httpStatusCodes.CONFLICT
                     })
                 }
@@ -70,7 +45,7 @@ const getUserRouter = ({redisClient, db}) => {
                     }
                 } else {
                     return {
-                        result: constants.RESPONSES.INVALID_CREDENTIALS,
+                        result: RESPONSES.INVALID_CREDENTIALS,
                         status: httpStatusCodes.UNAUTHORIZED
                     }
                 }
@@ -81,7 +56,11 @@ const getUserRouter = ({redisClient, db}) => {
             })
     })
 
-    userRouter.use(authenticationMiddleware(redisClient))
+    userRouter.get(`/:id(${UUID_REGEX})`, (request, response) => {
+        response.json({foo: "bar"})
+    })
+
+    userRouter.use(authentication(redisClient))
 
     userRouter.post("/logout", (request, response) => {
         const {token} = response.locals.user

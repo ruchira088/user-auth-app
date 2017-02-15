@@ -14,11 +14,13 @@ const delay = (promise, delay) => (
     })
 )
 
-const getRandomString = (strength = 2) => {
-    if(strength == 0) {
-        return ""
+const getRandomString = (length = 32) => {
+    const random = Math.random().toString(36).slice(2)
+
+    if (length <= random.length) {
+        return random.substring(0, length)
     } else {
-        return Math.random().toString(36).slice(2) + getRandomString(strength-1)
+        return random + getRandomString(length - random.length)
     }
 }
 

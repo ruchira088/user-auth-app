@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt")
 const moment = require("moment")
+const uuid = require("uuid")
 const generalLib = require("./general")
 const config = require("../../config.json")
 const {AUTHENTICATION} = require("../constants/errors")
@@ -18,7 +19,10 @@ const createUser = (db, user) => (
     bcrypt.hash(user.password, config.security.saltRounds)
         .then(hash =>
             db.collection(collections.users)
-                .insertOne(Object.assign({}, user, {password: hash}))
+                .insertOne(Object.assign({}, user, {
+                    _id: uuid.v4(),
+                    password: hash
+                }))
         )
 )
 
