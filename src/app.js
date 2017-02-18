@@ -7,7 +7,7 @@ const packageJson = require("../package.json")
 const config = require("../config.json")
 const redis = require("./libs/redis")
 const mongo = require("./libs/mongo")
-const user = require("./routes/user")
+const user = require("./routes/user/index")
 
 const PORT = process.env.HTTP_PORT || config.httpPort
 
@@ -24,7 +24,7 @@ app.get("/info", (request, response) => {
 Promise.all([redis.connect(), mongo.connect()])
     .then(([redisClient, db]) => {
 
-        app.use(user.PATH, user.getUserRouter({redisClient, db}))
+        app.use(user.PATH, user.getRouter({redisClient, db}))
 
         http.createServer(app).listen(PORT, () =>
         {

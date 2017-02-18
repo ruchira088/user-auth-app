@@ -1,16 +1,16 @@
 const express = require("express")
 const httpStatusCodes = require("http-status-codes")
-const userLib = require("../libs/user")
-const {RESPONSES} = require("../constants/messages")
-const {UUID_REGEX} = require("../constants/general")
-const {authentication} = require("../middleware/security")
+const userLib = require("../../libs/user")
+const {RESPONSES} = require("../../constants/messages")
+const {UUID_REGEX} = require("../../constants/general")
+const {authentication} = require("../../middleware/security")
 
 const PATH = "/user"
 
-const getUserRouter = ({redisClient, db}) => {
-    const userRouter = express.Router()
+const getRouter = ({redisClient, db}) => {
+    const indexRouter = express.Router()
 
-    userRouter.post("/", ({body}, response) => {
+    indexRouter.post("/", ({body}, response) => {
         const {username, password} = body
 
         userLib.usernameExists(db, username)
@@ -31,16 +31,13 @@ const getUserRouter = ({redisClient, db}) => {
             })
     })
 
-    userRouter.post("/login", ({body}, response) => {
+    indexRouter.post("/login", ({body}, response) => {
 
         userLib.login(db, redisClient, body)
             .then(token => {
                 if(token != null) {
                     return {
-                        result: {
-                            username: body.username,
-                            token: token
-                        },
+                        result: token,
                         status: httpStatusCodes.OK
                     }
                 } else {
@@ -56,13 +53,13 @@ const getUserRouter = ({redisClient, db}) => {
             })
     })
 
-    userRouter.get(`/:id(${UUID_REGEX})`, (request, response) => {
+    indexRouter.get(`/:id(${UUID_REGEX})`, (request, response) => {
         response.json({foo: "bar"})
     })
 
-    userRouter.use(authentication(redisClient))
+    indexRouter.use(authentication(redisClient))
 
-    userRouter.post("/logout", (request, response) => {
+    indexRouter.post("/logout", (request, response) => {
         const {token} = response.locals.user
 
         userLib.logout(redisClient, token)
@@ -75,10 +72,10 @@ const getUserRouter = ({redisClient, db}) => {
 
     })
 
-    return userRouter
+    return indexRouter
 }
 
 module.exports = {
     PATH,
-    getUserRouter
+    getRouter
 }

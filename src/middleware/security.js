@@ -12,15 +12,13 @@ const authentication = redis => (request, response, next) => {
             next()
         })
         .catch(error => {
-            const authError = Object.keys(AUTHENTICATION)
-                .map(key => AUTHENTICATION[key])
-                .find(authenticationError => authenticationError == error)
+            const authErrors = Object.keys(AUTHENTICATION).map(key => AUTHENTICATION[key])
 
             const statusCode = (() => {
-                if(authError == undefined) {
-                    return httpStatusCodes.INTERNAL_SERVER_ERROR
-                } else {
+                if(authErrors.includes(error)) {
                     return httpStatusCodes.UNAUTHORIZED
+                } else {
+                    return httpStatusCodes.INTERNAL_SERVER_ERROR
                 }
             })()
 

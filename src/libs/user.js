@@ -38,7 +38,10 @@ const login = (db, redisClient, {username, password}) => (
                             const sessionExpire = moment().add(length, unit).toISOString()
 
                             return redisClient.set(token, {user, sessionExpire, token})
-                                .then(() => token)
+                                .then(() => ({
+                                    token, username,
+                                    userId: user._id
+                                }))
                         } else {
                             return null
                         }
