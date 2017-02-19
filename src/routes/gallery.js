@@ -2,7 +2,7 @@ const express = require("express")
 
 const PATH = "/gallery"
 
-const getGalleryRouter = (redisClient, db) => {
+const getGalleryRouter = ({redisClient, db}) => {
     const galleryRouter = express.Router()
 
     galleryRouter.post("/", (request, response) => {

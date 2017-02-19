@@ -3,7 +3,10 @@ const httpStatusCodes = require("http-status-codes")
 const userLib = require("../../libs/user")
 const {RESPONSES} = require("../../constants/messages")
 const {UUID_REGEX} = require("../../constants/general")
-const {authentication} = require("../../middleware/security")
+const {USER} = require("../../constants/errors")
+const {sanitize} = require("../../libs/general")
+const {authentication, authorization} = require("../../middleware/security")
+const userRouter = require("./user")
 
 const PATH = "/user"
 
@@ -17,7 +20,10 @@ const getRouter = ({redisClient, db}) => {
             .then(result => {
                 if (result === false) {
                     return userLib.createUser(db, {username, password})
-                            .then(result => ({result, status: httpStatusCodes.CREATED}))
+                            .then(result => ({
+                                result: sanitize(result),
+                                status: httpStatusCodes.CREATED
+                            }))
                 } else {
                     return ({
                         result: `${RESPONSES.USERNAME_EXISTS}: ${username}`,
@@ -53,11 +59,23 @@ const getRouter = ({redisClient, db}) => {
             })
     })
 
-    indexRouter.get(`/:id(${UUID_REGEX})`, (request, response) => {
-        response.json({foo: "bar"})
+    indexRouter.use(authentication(redisClient))
+
+    indexRouter.param("userId", (request, response, next, userId) => {
+        userLib.getUser(db, {id: userId})
+            .then(user => {
+                response.locals.userParam = user
+                next()
+            })
+            .catch(error => {
+                const errorCode = error == USER.NOT_FOUND ?
+                    httpStatusCodes.NOT_FOUND : httpStatusCodes.INTERNAL_SERVER_ERROR
+
+                response.status(errorCode).json(error.message)
+            })
     })
 
-    indexRouter.use(authentication(redisClient))
+    indexRouter.use(`/:userId(${UUID_REGEX})`, authorization, userRouter({redisClient, db}))
 
     indexRouter.post("/logout", (request, response) => {
         const {token} = response.locals.user

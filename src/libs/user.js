@@ -3,31 +3,36 @@ const moment = require("moment")
 const uuid = require("uuid")
 const generalLib = require("./general")
 const config = require("../../config.json")
-const {AUTHENTICATION} = require("../constants/errors")
+const {AUTHENTICATION, USER} = require("../constants/errors")
 
 const {collections} = config.services.mongo
 
-const getUser = (db, username) => (
-    db.collection(collections.users).findOne({username})
+const getUser = (db, query) => (
+    db.collection(collections.users).findOne(query)
+        .then(user => user == null ? Promise.reject(USER.NOT_FOUND) : user)
 )
 
 const usernameExists = (db, username) => (
-    getUser(db, username).then(result => result != null)
+    getUser(db, {username})
+        .then(() => true)
+        .catch(error => error === USER.NOT_FOUND ? false : Promise.reject(error))
 )
 
 const createUser = (db, user) => (
     bcrypt.hash(user.password, config.security.saltRounds)
-        .then(hash =>
-            db.collection(collections.users)
-                .insertOne(Object.assign({}, user, {
-                    _id: uuid.v4(),
-                    password: hash
-                }))
-        )
+        .then(hash => {
+            const userEntry = Object.assign({}, user, {
+                id: uuid.v4(),
+                password: hash
+            })
+
+            return db.collection(collections.users).insertOne(userEntry)
+                    .then(() => userEntry)
+        })
 )
 
 const login = (db, redisClient, {username, password}) => (
-    getUser(db, username)
+    getUser(db, {username})
         .then(user => {
             if(user != null) {
                 return bcrypt.compare(password, user.password)
@@ -40,7 +45,7 @@ const login = (db, redisClient, {username, password}) => (
                             return redisClient.set(token, {user, sessionExpire, token})
                                 .then(() => ({
                                     token, username,
-                                    userId: user._id
+                                    userId: user.id
                                 }))
                         } else {
                             return null
@@ -81,6 +86,7 @@ const getUserFromToken = (redisClient, token) => (
 const logout = (redis, token) => redis.remove(token)
 
 module.exports = {
+    getUser,
     createUser,
     usernameExists,
     getUserFromToken,

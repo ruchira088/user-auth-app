@@ -1,3 +1,5 @@
+const {PRIVATE_FIELDS} = require("../constants/database")
+
 const callback = (resolve, reject) => (error, value) => {
     if(error != null) {
         resolve(error)
@@ -24,8 +26,15 @@ const getRandomString = (length = 32) => {
     }
 }
 
+const sanitize = object => (
+    Object.keys(object)
+        .filter(key => !PRIVATE_FIELDS.includes(key))
+        .reduce((output, key) => Object.assign({}, output, {[key]: object[key]}), {})
+)
+
 module.exports = {
     callback,
     delay,
-    getRandomString
+    getRandomString,
+    sanitize
 }

@@ -1,7 +1,7 @@
 const httpStatusCodes = require("http-status-codes")
 const userLib = require("../libs/user")
 const config = require("../../config.json")
-const {AUTHENTICATION} = require("../constants/errors")
+const {AUTHENTICATION, AUTHORIZATION} = require("../constants/errors")
 
 const authentication = redis => (request, response, next) => {
     const token = request.get(config.security.authenticationHeader)
@@ -26,6 +26,22 @@ const authentication = redis => (request, response, next) => {
         })
 }
 
+const isAuthorized = (user, accessObject) => (
+    user.id != null && user.id === accessObject.id
+)
+
+const authorization = (request, response, next) => {
+    const {user, userParam} = response.locals
+
+    if(isAuthorized(user, userParam)) {
+        next()
+    } else {
+        response.status(httpStatusCodes.UNAUTHORIZED)
+            .json(AUTHORIZATION.UNAUTHORIZED.message)
+    }
+}
+
 module.exports = {
-    authentication
+    authentication,
+    authorization
 }
