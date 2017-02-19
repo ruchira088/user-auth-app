@@ -26,15 +26,20 @@ const getRandomString = (length = 32) => {
     }
 }
 
-const sanitize = object => (
+const filterObject = condition => object =>
     Object.keys(object)
-        .filter(key => !PRIVATE_FIELDS.includes(key))
+        .filter(condition(object))
         .reduce((output, key) => Object.assign({}, output, {[key]: object[key]}), {})
-)
+
+
+const sanitize = filterObject(() => key => !PRIVATE_FIELDS.includes(key))
+
+const getNonNullValues = filterObject(object => key => object[key] != null)
 
 module.exports = {
     callback,
     delay,
     getRandomString,
-    sanitize
+    sanitize,
+    getNonNullValues
 }
